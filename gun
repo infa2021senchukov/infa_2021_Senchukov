@@ -1,0 +1,115 @@
+import pygame
+from pygame.draw import circle
+from pygame.draw import rect
+from random import randint
+import pygame.freetype
+pygame.init()
+
+#pygame.mixer.music.load('music.ogg')
+#pygame.mixer.music.play(-1)
+FPS = 60
+screen = pygame.display.set_mode((600, 900))
+
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+GREEN = (0, 255, 0)
+MAGENTA = (255, 0, 255)
+CYAN = (0, 255, 255)
+BLACK = (0, 0, 0)
+COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
+#счетчик попаданий
+s=0
+#список всех шаров
+f=[]
+#список всех бонусов
+g=[]
+tick=0
+pygame.font.init()
+myfont = pygame.freetype.SysFont('Comic Sans MS', 30)
+
+class Shar:
+    def __init__(self,x,y,r,speedx,speedy,color):
+        self.x = x
+        self.y = y
+        self.r = r
+        self.speedx = speedx
+        self.speedy = speedy
+        self.color = color
+    def move(self,f,i):
+        '''
+        передвигаем шарики
+        '''
+        if self.x<self.r or self.x>600-self.r:
+            self.speedx=-self.speedx
+            while self.x<self.r or self.x>600-self.r:
+                f[i].x=f[i].x+f[i].speedx
+        if self.y<self.r or self.y>900-self.r:
+            self.speedy=-self.speedy
+            while self.y<self.r or self.y>900-self.r:
+                f[i].y=f[i].y+f[i].speedy
+        for j in range(i+1,len(f),1):
+            if (f[j].x-f[i].x)**2+(f[j].y-f[i].y)**2<=(f[j].r+f[i].r)**2:
+                f[i].speedx=-f[i].speedx
+                f[i].speedy=-f[i].speedy
+                f[j].speedx=-f[j].speedx
+                f[j].speedy=-f[j].speedy
+                while (f[j].x-f[i].x)**2+(f[j].y-f[i].y)**2<(f[j].r+f[i].r)**2:
+                    f[i].x=f[i].x+f[i].speedx
+                    f[i].y=f[i].y+f[i].speedy
+                    f[j].x=f[j].x+f[j].speedx
+                    f[j].y=f[j].y+f[j].speedy                  
+        else:                
+            self.x=self.x+self.speedx   
+            self.y=self.y+self.speedy
+        circle(screen, self.color, (self.x, self.y), self.r)
+    def demolish(self,event):
+        '''
+        проверяем попадание
+        '''
+        return((event.pos[0]-self.x)**2+(event.pos[1]-self.y)**2<=(self.r)**2)
+    
+def score():
+    '''
+    сохраняем имя в таблицу рекордов
+    '''
+    output = open('score.txt', 'a')
+    print('Введите ваше имя')
+    name=input()
+    print(s, ' - ', name, file=output)
+    output.close()
+
+def end(f,finished):
+    '''
+    проверяем условие проигрыша
+    '''
+    if len(f)>9:
+        finished = True
+    return(finished)
+              
+pygame.display.update()
+clock = pygame.time.Clock()
+finished = False
+while not finished:
+    clock.tick(FPS)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            finished = True
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            for i in range (len(f)-1,-1,-1):
+                if f[i].demolish(event) is True:
+                    f.remove(f[i])
+                    s=s+1
+    if tick%100 == 0:
+        f.append(Shar(randint(100,500),randint(100,650),
+                randint(35,50),randint(3,5)*(-1)**randint(0,1),
+                            randint(3,5)*(-1)**randint(0,1),COLORS[randint(0, 5)]))
+    if len(f)>5:
+	    f.remove(f[0])
+    for i in range (len(f)):
+        f[i].move(f,i)
+    #finished=end(f,finished)
+    pygame.display.update()
+    screen.fill((255,255,255))
+    tick=tick+1
+pygame.quit()
