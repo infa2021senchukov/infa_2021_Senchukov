@@ -47,18 +47,39 @@ class Bow:
             self.tension = 0.1
     def draw(self):
         if self.owner.weapon == 'bow':
-            f.append(Arrow(self.owner.x+self.owner.width,self.owner.y+self.owner.height/2,self.tension/3+10))
-            self.tension = 0
+            if self.owner.orientation == 'right':
+                f.append(Arrow(self.owner.x+self.owner.width,self.owner.y+self.owner.height/2,'right',self.tension/3+10))
+                self.tension = 0
+            elif self.owner.orientation == 'left':
+                f.append(Arrow(self.owner.x,self.owner.y+self.owner.height/2,'left',-self.tension/3-10))
+                self.tension = 0
+            elif self.owner.orientation == 'top':
+                f.append(Arrow(self.owner.x+self.owner.width/2,self.owner.y-self.w/2,'top',-self.tension/3-10))
+                self.tension = 0
+            elif self.owner.orientation == 'bot':
+                f.append(Arrow(self.owner.x+self.owner.width/2,self.owner.y+self.owner.height,'top',self.tension/3+10))
+                self.tension = 0
 class Arrow:
-    def __init__(self,x,y,speed):
+    def __init__(self,x,y,orientation,speed):
         self.x = x
         self.y = y
+        self.orientation = orientation
         self.speed = speed
     def fly(self):
-        self.x=self.x+self.speed
-        line(screen,(0,0,0),(self.x,self.y),(self.x+20,self.y),3)
+        if self.orientation == 'right':
+            self.x=self.x+self.speed
+            line(screen,(0,0,0),(self.x,self.y),(self.x+20,self.y),3)
+        elif self.orientation == 'left':
+            self.x=self.x+self.speed
+            line(screen,(0,0,0),(self.x,self.y),(self.x-20,self.y),3)
+        elif self.orientation == 'top':
+            self.y=self.y+self.speed
+            line(screen,(0,0,0),(self.x,self.y),(self.x,self.y+20),3)
+        elif self.orientation == 'bot':
+            self.y=self.y+self.speed
+            line(screen,(0,0,0),(self.x,self.y),(self.x,self.y-20),3)
 class Unit:
-    def __init__(self,x,y,width,height,Vx,Vy,dV,hp,weapon,buttons):
+    def __init__(self,x,y,width,height,Vx,Vy,dV,orientation,hp,weapon,buttons):
         self.x=x
         self.y=y
         self.width=width
@@ -66,6 +87,7 @@ class Unit:
         self.Vx=Vx
         self.Vy=Vy
         self.dV=dV
+        self.orientation = orientation
         self.hp=hp
         self.weapon = weapon
         self.buttons=buttons
@@ -85,14 +107,18 @@ class Unit:
         передвигаем юнита
         '''
         if event.type == pygame.KEYDOWN:
-            if event.unicode == str(self.buttons[2]):
-                self.Vx -= self.dV
-            if event.unicode == str(self.buttons[3]):
-                self.Vx += self.dV
             if event.unicode == str(self.buttons[0]):
                 self.Vy -= self.dV
+                self.orientation = 'top'
             if event.unicode == str(self.buttons[1]):
                 self.Vy += self.dV
+                self.orientation = 'bot'
+            if event.unicode == str(self.buttons[2]):
+                self.Vx -= self.dV
+                self.orientation = 'left'
+            if event.unicode == str(self.buttons[3]):
+                self.Vx += self.dV
+                self.orientation = 'right'
         if event.type == pygame.KEYUP:
             if event.unicode == str(self.buttons[2]):
                 self.Vx += self.dV
@@ -122,9 +148,22 @@ class Unit:
         if self.x>screen_width:
             self.x=0
     def hold_a_sword(self,sword):
-        line(screen,(0,0,0),(self.x+self.width,self.y+self.height/2),
-             (self.x+self.width+sword.l*m.cos(sword.phi),
-              self.y+self.height/2-sword.l*m.sin(sword.phi)),3)
+        if self.orientation == 'right': 
+            line(screen,(0,0,0),(self.x+self.width,self.y+self.height/2),
+                 (self.x+self.width+sword.l*m.cos(sword.phi),
+                  self.y+self.height/2-sword.l*m.sin(sword.phi)),3)
+        if self.orientation == 'left': 
+            line(screen,(0,0,0),(self.x,self.y+self.height/2),
+                 (self.x-sword.l*m.cos(sword.phi),
+                  self.y+self.height/2-sword.l*m.sin(sword.phi)),3)
+        if self.orientation == 'top':
+            line(screen,(0,0,0),(self.x+self.width/2,self.y),
+                 (self.width/2+self.x+sword.l*m.sin(sword.phi),
+                  self.y-sword.l*m.cos(sword.phi)),3)
+        if self.orientation == 'bot':
+            line(screen,(0,0,0),(self.x+self.width/2,self.y+self.height),
+                 (self.width/2+self.x-sword.l*m.sin(sword.phi),
+                  self.y+self.height+sword.l*m.cos(sword.phi)),3)
         if sword.sharp == 1:
             sword.phi -= m.pi/30
         if sword.phi <= -5*m.pi/12:
@@ -133,7 +172,15 @@ class Unit:
     def hold_a_bow(self,bow):
         if (bow.tension > 0) and bow.tension < 100:
             bow.tension += 2.5
-        arc(screen,(0,0,0),(self.x+self.width-bow.w/2,self.y+self.height/2-bow.h/2,bow.w,bow.h),-m.pi/2,m.pi/2,3)
+        if self.orientation == 'right':
+            arc(screen,(0,0,0),(self.x+self.width-bow.w/2,self.y+self.height/2-bow.h/2,bow.w,bow.h),-m.pi/2,m.pi/2,3)
+        if self.orientation == 'left':
+            arc(screen,(0,0,0),(self.x-bow.w/2,self.y+self.height/2-bow.h/2,bow.w,bow.h),m.pi/2,3*m.pi/2,3)
+        if self.orientation == 'top':
+            arc(screen,(0,0,0),(self.x+self.width/2-bow.h/2,self.y-bow.w/2,bow.h,bow.w),0,m.pi,3)
+        if self.orientation == 'bot':
+            arc(screen,(0,0,0),(self.x+self.width/2-bow.h/2,self.y+self.height-bow.w/2,bow.h,bow.w),m.pi,0,3)
+        
         rect(screen,'yellow',(self.x+0.25*self.width,self.y+self.height+20,self.width*0.5*bow.tension/100+1,10))
         rect(screen,'grey',(self.x+0.25*self.width+self.width*0.5*bow.tension/100,self.y+self.height+20,self.width*0.5*(100-bow.tension)/100+1,10))
         
@@ -146,7 +193,7 @@ class Unit:
 pygame.display.update()
 clock = pygame.time.Clock()
 finished = False
-hero = Unit(10,300,50,40,0,0,10,75,'sword',('w','s','a','d'))
+hero = Unit(10,300,50,40,0,0,10,'right',75,'sword',('w','s','a','d'))
 sword = Sword(50,5*m.pi/12,0,hero)
 bow = Bow(35,25,0,0,hero)
 while not finished:
